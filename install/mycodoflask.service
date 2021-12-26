@@ -13,6 +13,7 @@ ExecStart=/var/mycodo-root/env/bin/gunicorn \
 --timeout 300 \
 --pid /var/run/mycodoflask.pid \
 --bind unix:/var/run/mycodoflask.sock start_flask_ui:app
+Environment="PYTHONPATH=$PYTHONPATH:/home/nvidia/.local/lib/python3.6/site-packages"
 
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID

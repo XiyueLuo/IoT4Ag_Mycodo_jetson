@@ -23,9 +23,8 @@
 #
 #  Contact at kylegabriel.com
 
-import sys
-
 import os
+import sys
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
@@ -58,6 +57,7 @@ from mycodo.controllers.controller_output import OutputController
 from mycodo.controllers.controller_pid import PIDController
 from mycodo.controllers.controller_trigger import TriggerController
 from mycodo.controllers.controller_widget import WidgetController
+from mycodo.controllers.controller_function import FunctionController
 from mycodo.databases.models import Camera
 from mycodo.databases.models import Conditional
 from mycodo.databases.models import CustomController
@@ -69,18 +69,16 @@ from mycodo.databases.models import PID
 from mycodo.databases.models import Trigger
 from mycodo.databases.utils import session_scope
 from mycodo.devices.camera import camera_record
-from mycodo.utils.functions import parse_function_information
 from mycodo.utils.database import db_retrieve_table_daemon
 from mycodo.utils.function_actions import get_condition_value
 from mycodo.utils.function_actions import get_condition_value_dict
 from mycodo.utils.function_actions import trigger_action
 from mycodo.utils.function_actions import trigger_function_actions
 from mycodo.utils.github_release_info import MycodoRelease
-from mycodo.utils.modules import load_module_from_file
-from mycodo.utils.statistics import add_update_csv
-from mycodo.utils.statistics import recreate_stat_file
-from mycodo.utils.statistics import return_stat_file_dict
-from mycodo.utils.statistics import send_anonymous_stats
+from mycodo.utils.stats import add_update_csv
+from mycodo.utils.stats import recreate_stat_file
+from mycodo.utils.stats import return_stat_file_dict
+from mycodo.utils.stats import send_anonymous_stats
 from mycodo.utils.tools import generate_output_usage_report
 from mycodo.utils.tools import next_schedule
 
@@ -90,6 +88,7 @@ MYCODO_DB_PATH = 'sqlite:///' + SQL_DATABASE_MYCODO
 class DaemonController:
     """ Mycodo daemon """
     def __init__(self, debug):
+        
         self.logger = logging.getLogger('mycodo.daemon')
         if not debug:
             self.logger.setLevel(logging.INFO)
@@ -113,7 +112,7 @@ class DaemonController:
             'Math': {},
             'PID': {},
             'Trigger': {},
-            'Custom': {}
+            'Function': {}
         }
 
         # Controllers that may launch multiple threads
@@ -125,7 +124,7 @@ class DaemonController:
             'Math',
             'PID',
             'LCD',
-            'Custom'
+            'Function'
         ]
 
         # Dashboard widgets
@@ -156,13 +155,16 @@ class DaemonController:
         self.logger.debug("Anonymous statistics {state}".format(state=state))
 
     def run(self):
+        
         self.start_all_controllers(self.debug)
+        print('run')
         self.daemon_startup_time = timeit.default_timer() - self.startup_timer
         self.logger.info("Mycodo daemon started in {sec:.3f} seconds".format(sec=self.daemon_startup_time))
         self.startup_stats()
 
         # loop until daemon is instructed to shut down
         while self.daemon_run:
+            
             now = time.time()
 
             try:
@@ -174,7 +176,7 @@ class DaemonController:
 
                 # Capture time-lapse image (if enabled)
                 self.check_all_timelapses(now)
-
+                print('self.daemon_run')
                 # Generate output usage report (if enabled)
                 if (self.output_usage_report_gen and
                         self.output_usage_report_next_gen and
@@ -231,13 +233,11 @@ class DaemonController:
             'Math': db_retrieve_table_daemon(Math, unique_id=unique_id),
             'PID': db_retrieve_table_daemon(PID, unique_id=unique_id),
             'Trigger': db_retrieve_table_daemon(Trigger, unique_id=unique_id),
-            'Custom': db_retrieve_table_daemon(CustomController, unique_id=unique_id)
+            'Function': db_retrieve_table_daemon(CustomController, unique_id=unique_id)
         }
-        controller_type = None
         for each_type in db_tables:
             if db_tables[each_type]:
-                controller_type = each_type
-        return controller_type
+                return each_type
 
     def controller_activate(self, cont_id):
         """
@@ -280,39 +280,33 @@ class DaemonController:
             elif cont_type == 'Trigger':
                 controller_manage['type'] = Trigger
                 controller_manage['function'] = TriggerController
-            elif cont_type == 'Custom':
+            elif cont_type == 'Function':
                 controller_manage['type'] = CustomController
-
-                custom_function = db_retrieve_table_daemon(controller_manage['type'], unique_id=cont_id)
-                dict_functions = parse_function_information()
-                if custom_function and custom_function.device in dict_functions:
-                    function_loaded = load_module_from_file(
-                        dict_functions[custom_function.device]['file_path'], 'functions')
-                    controller_manage['function'] = function_loaded.CustomModule
-                else:
-                    return 1, "Custom function not found.".format(type=cont_type)
-
+                controller_manage['function'] = FunctionController
             else:
-                return 1, "'{type}' not a valid controller type.".format(type=cont_type)
+                message = "'{type}' not a valid controller type.".format(type=cont_type)
+                self.logger.error(message)
+                return 1, message
 
-            # Check if the controller actually exists
-            controller = db_retrieve_table_daemon(controller_manage['type'], unique_id=cont_id)
-            if not controller:
-                return 1, "{type} controller with ID {id} not found.".format(type=cont_type, id=cont_id)
-
-            # set as active in SQL database
             with session_scope(MYCODO_DB_PATH) as new_session:
                 mod_cont = new_session.query(controller_manage['type']).filter(
                     controller_manage['type'].unique_id == cont_id).first()
-                mod_cont.is_activated = True
-                new_session.commit()
+                if not mod_cont:  # Check if the controller actually exists
+                    message = "{type} controller with ID {id} not found.".format(
+                        type=cont_type, id=cont_id)
+                    self.logger.error(message)
+                    return 1, message
+                else:  # set as active in SQL database
+                    mod_cont.is_activated = True
+                    new_session.commit()
 
             self.controller[cont_type][cont_id] = controller_manage['function'](ready, cont_id)
             self.controller[cont_type][cont_id].daemon = True
             self.controller[cont_type][cont_id].start()
             ready.wait()  # wait for thread to return ready
-
-            return 0, "{type} controller with ID {id} activated.".format(type=cont_type, id=cont_id)
+            message = "{type} controller with ID {id} activated.".format(type=cont_type, id=cont_id)
+            self.logger.debug(message)
+            return 0, message
 
         except Exception as except_msg:
             message = "Could not activate {type} controller with ID {id}: {e}".format(
@@ -335,30 +329,70 @@ class DaemonController:
             if cont_id in self.controller[cont_type]:
                 if self.controller[cont_type][cont_id].is_running():
                     try:
+                        if cont_type == 'Conditional':
+                            controller_table = Conditional
+                        elif cont_type == 'LCD':
+                            controller_table = LCD
+                        elif cont_type == 'Input':
+                            controller_table = Input
+                        elif cont_type == 'Math':
+                            controller_table = Math
+                        elif cont_type == 'PID':
+                            controller_table = PID
+                        elif cont_type == 'Trigger':
+                            controller_table = Trigger
+                        elif cont_type == 'Function':
+                            controller_table = CustomController
+                        else:
+                            message = "'{type}' not a valid controller type.".format(type=cont_type)
+                            self.logger.error(message)
+                            return 1, message
+
+                        if controller_table:
+                            # set as active in SQL database
+                            with session_scope(MYCODO_DB_PATH) as new_session:
+                                mod_cont = new_session.query(controller_table).filter(
+                                    controller_table.unique_id == cont_id).first()
+                                if not mod_cont:  # Check if the controller actually exists
+                                    message = "{type} controller with ID {id} not found.".format(
+                                        type=cont_type, id=cont_id)
+                                    self.logger.error(message)
+                                    return 1, message
+                                else:  # set as active in SQL database
+                                    mod_cont.is_activated = False
+                                    new_session.commit()
+
                         if cont_type == 'PID':
                             self.controller[cont_type][cont_id].stop_controller(deactivate_pid=True)
                         else:
                             self.controller[cont_type][cont_id].stop_controller()
                         self.controller[cont_type][cont_id].join()
-                        return 0, "{type} controller with ID {id} deactivated.".format(
+
+                        message = "{type} controller with ID {id} deactivated.".format(
                             type=cont_type, id=cont_id)
+                        self.logger.debug(message)
+                        return 0, message
                     except Exception as except_msg:
                         message = "Could not deactivate {type} controller with " \
                                   "ID {id}: {err}".format(type=cont_type,
                                                           id=cont_id,
                                                           err=except_msg)
                         self.logger.exception(message)
-                        return 1, message
+                        return 1,
+                    finally:
+                        self.controller[cont_type].pop(cont_id, None)
+
                 else:
                     message = "Could not deactivate {type} controller with ID " \
                               "{id}, it's not active.".format(type=cont_type,
                                                               id=cont_id)
-                    self.logger.debug(message)
+                    self.logger.error(message)
                     return 1, message
             else:
                 message = "{type} controller with ID {id} not found".format(type=cont_type, id=cont_id)
-                self.logger.warning(message)
+                self.logger.error(message)
                 return 1, message
+
         except Exception as except_msg:
             message = "Could not deactivate {type} controller with ID {id}: {e}".format(
                 type=cont_type, id=cont_id, e=except_msg)
@@ -375,6 +409,7 @@ class DaemonController:
         :param cont_id: Unique ID for controller
         :type cont_id: str
         """
+        print('h')
         cont_type = self.determine_controller_type(cont_id)
         try:
             if cont_id in self.controller[cont_type]:
@@ -415,9 +450,9 @@ class DaemonController:
             for trigger_id in self.controller['Trigger']:
                 if not self.controller['Trigger'][trigger_id].is_running():
                     return "Error: Trigger ID {}".format(trigger_id)
-            for controller_id in self.controller['Custom']:
-                if not self.controller['Custom'][controller_id].is_running():
-                    return "Error: Custom ID {}".format(controller_id)
+            for controller_id in self.controller['Function']:
+                if not self.controller['Function'][controller_id].is_running():
+                    return "Error: Function ID {}".format(controller_id)
             if not self.controller['Output'].is_running():
                 return "Error: Output controller"
             if not self.controller['Widget'].is_running():
@@ -427,7 +462,7 @@ class DaemonController:
             self.logger.exception(message)
             return "Exception: {msg}".format(msg=except_msg)
 
-    def custom_button(self, controller_type, unique_id, button_id, args_dict):
+    def custom_button(self, controller_type, unique_id, button_id, args_dict, thread=True):
         """
         Force function to be executed from UI
 
@@ -442,20 +477,26 @@ class DaemonController:
         :type button_id: str
         :param args_dict: dict of arguments to pass to function
         :type args_dict: dict
-
+        :param thread: execute the function sa a thread or get return value
+        :type thread: bool
         """
         try:
             if controller_type == "Input":
-                return self.controller["Input"][unique_id].custom_button_exec_function(button_id, args_dict)
+                return self.controller["Input"][unique_id].custom_button_exec_function(
+                    button_id, args_dict, thread=thread)
+            if controller_type == "Function":
+                return self.controller["Function"][unique_id].custom_button_exec_function(
+                    button_id, args_dict, thread=thread)
             elif controller_type == "Output":
                 return self.controller["Output"].custom_button_exec_function(
-                    unique_id, button_id, args_dict)
+                    button_id, args_dict, unique_id=unique_id, thread=thread)
             else:
                 msg = "Unknown controller: {}".format(controller_type)
                 self.logger.error(msg)
                 return 1, msg
-        except Exception as except_msg:
-            message = "Cannot execute Input function from custom action: {err}".format(err=except_msg)
+        except:
+            message = "Cannot execute custom action. Is the controller activated? " \
+                      "If it is and this error is still occurring, check the Daemon Log."
             self.logger.exception(message)
             return 1, message
 
@@ -476,6 +517,25 @@ class DaemonController:
             message = "Cannot force acquisition of Input measurements: {err}".format(err=except_msg)
             self.logger.exception(message)
             return 1, message
+
+    def function_status(self, function_id):
+        if function_id in self.controller["Function"]:
+            try:
+                return self.controller["Function"][function_id].function_status()
+            except Exception as err:
+                return {'error': ["Error getting Function status: {}".format(err)]}
+        elif function_id in self.controller["Conditional"]:
+            try:
+                return self.controller["Conditional"][function_id].function_status()
+            except Exception as err:
+                return {'error': ["Error getting Function status: {}".format(err)]}
+        elif function_id in self.controller["PID"]:
+            try:
+                return self.controller["PID"][function_id].function_status()
+            except Exception as err:
+                return {'error': ["Error getting Function status: {}".format(err)]}
+        else:
+            return {'error': ["Function ID not found"]}
 
     def lcd_reset(self, lcd_id):
         """
@@ -512,13 +572,19 @@ class DaemonController:
 
         """
         try:
-            return self.controller['LCD'][lcd_id].lcd_backlight(state)
+            if lcd_id in self.controller['LCD']:
+                return self.controller['LCD'][lcd_id].lcd_backlight(state)
+            elif lcd_id in self.controller['Function']:
+                if state:
+                    return self.controller['Function'][lcd_id].function_action("lcd_backlight_on")
+                else:
+                    return self.controller['Function'][lcd_id].function_action("lcd_backlight_off")
         except KeyError:
-            message = "Cannot stop flashing, LCD not running"
+            message = "Cannot change backlight: LCD not running"
             self.logger.exception(message)
             return 0, message
         except Exception as except_msg:
-            message = "Could not flash LCD: {e}".format(e=except_msg)
+            message = "Cannot change backlight: {e}".format(e=except_msg)
             self.logger.exception(message)
 
     def lcd_backlight_color(self, lcd_id, color):
@@ -537,11 +603,11 @@ class DaemonController:
         try:
             return self.controller['LCD'][lcd_id].lcd_backlight_color(color)
         except KeyError:
-            message = "Cannot change LCD color, LCD not running"
+            message = "Cannot change LCD color: LCD not running"
             self.logger.exception(message)
             return 0, message
         except Exception as except_msg:
-            message = "Could not change LCD color: {e}".format(e=except_msg)
+            message = "Cannot change LCD color: {e}".format(e=except_msg)
             self.logger.exception(message)
 
     def lcd_flash(self, lcd_id, state):
@@ -560,11 +626,11 @@ class DaemonController:
         try:
             return self.controller['LCD'][lcd_id].lcd_flash(state)
         except KeyError:
-            message = "LCD not running"
+            message = "Cannot flash LCD: LCD not running"
             self.logger.error(message)
             return 0, message
         except Exception as except_msg:
-            message = "Could not flash LCD ({state}): {e}".format(state=state, e=except_msg)
+            message = "Cannot flash LCD ({state}): {e}".format(state=state, e=except_msg)
             self.logger.exception(message)
             return 0, message
 
@@ -809,7 +875,7 @@ class DaemonController:
             return self.controller['Output'].output_states_all()
         except Exception as except_msg:
             self.logger.exception(
-                "Could not query output state: {e}".format(e=except_msg))
+                "Could not query all output statea: {e}".format(e=except_msg))
 
     def startup_stats(self):
         """Ensure existence of statistics file and save daemon startup time"""
@@ -838,7 +904,7 @@ class DaemonController:
                 'Math': db_retrieve_table_daemon(Math, entry='all'),
                 'PID': db_retrieve_table_daemon(PID, entry='all'),
                 'Trigger': db_retrieve_table_daemon(Trigger, entry='all'),
-                'Custom': db_retrieve_table_daemon(CustomController, entry='all')
+                'Function': db_retrieve_table_daemon(CustomController, entry='all')
             }
 
             self.logger.debug("Starting Output Controller")
@@ -926,19 +992,11 @@ class DaemonController:
         except Exception as err:
             self.logger.info("Widget controller had an issue stopping: {err}".format(err=err))
 
-    def send_infrared_code_broadcast(self, code):
-        """Broadcast IR code to all active IR Triggers (thread for speed)"""
-        for each_trigger_id in self.controller['Trigger']:
-            if self.controller['Trigger'][each_trigger_id].trigger_type == 'trigger_infrared_remote_input':
-                broadcast_ir = threading.Thread(
-                    target=self.controller['Trigger'][each_trigger_id].receive_infrared_code_broadcast,
-                    args=(code,))
-                broadcast_ir.start()
-
-    def trigger_action(self, action_id, message='', single_action=False, debug=False):
+    def trigger_action(self, action_id, value=None, message='', single_action=False, debug=False):
         try:
             return trigger_action(
                 action_id,
+                value=value,
                 message=message,
                 single_action=single_action,
                 debug=debug)
@@ -1103,10 +1161,10 @@ class PyroServer(object):
     def get_condition_measurement_dict(self, condition_id):
         return self.mycodo.get_condition_measurement_dict(condition_id)
 
-    def custom_button(self, controller_type, unique_id, button_id, args_dict):
+    def custom_button(self, controller_type, unique_id, button_id, args_dict, thread=True):
         """execute custom button function"""
         return self.mycodo.custom_button(
-            controller_type, unique_id, button_id, args_dict)
+            controller_type, unique_id, button_id, args_dict, thread)
 
     def controller_activate(self, cont_id):
         """Activates a controller"""
@@ -1123,6 +1181,10 @@ class PyroServer(object):
     def check_daemon(self):
         """Check if all active controllers respond"""
         return self.mycodo.check_daemon()
+
+    def function_status(self, function_id):
+        """Get status of Function"""
+        return self.mycodo.function_status(function_id)
 
     def input_force_measurements(self, input_id):
         """Updates all input information"""
@@ -1206,14 +1268,11 @@ class PyroServer(object):
         """Add, delete, or modify a output in the running output controller"""
         return self.mycodo.output_setup(action, output_id)
 
-    def send_infrared_code_broadcast(self, code):
-        """Broadcast infrared code to all IR Triggers"""
-        return self.mycodo.send_infrared_code_broadcast(code)
-
-    def trigger_action(self, action_id, message='', single_action=False, debug=False):
+    def trigger_action(self, action_id, value=None, message='', single_action=False, debug=False):
         """Trigger action"""
         return self.mycodo.trigger_action(
             action_id,
+            value=value,
             message=message,
             single_action=single_action,
             debug=debug)
@@ -1338,6 +1397,7 @@ class MycodoDaemon:
 
     def start_daemon(self):
         """Start communication and daemon threads"""
+        print('start_daemon')
         try:
             pd = PyroDaemon(self.mycodo, self.debug)
             pd.daemon = True
@@ -1386,6 +1446,7 @@ if __name__ == '__main__':
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     keep_fds = [fh.stream.fileno()]
+    
 
     debug = False
     misc = db_retrieve_table_daemon(Misc, entry='first')
@@ -1397,13 +1458,14 @@ if __name__ == '__main__':
     daemon_controller = DaemonController(debug)
     mycodo_daemon = MycodoDaemon(daemon_controller, debug)
 
-    if DOCKER_CONTAINER:
-        mycodo_daemon.start_daemon()
-    else:
-        # Set up daemon and start it
-        daemon = Daemonize(
-            app="mycodo_daemon",
-            pid=DAEMON_PID_FILE,
-            action=mycodo_daemon.start_daemon,
-            keep_fds=keep_fds)
-        daemon.start()
+    # if DOCKER_CONTAINER:
+    # mycodo_daemon.start_daemon()
+    # else:
+    #     # Set up daemon and start it
+    daemon = Daemonize(
+        app="mycodo_daemon",
+        pid=DAEMON_PID_FILE,
+        action=mycodo_daemon.start_daemon,
+        keep_fds=keep_fds)
+        
+    daemon.start()

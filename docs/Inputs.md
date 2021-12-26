@@ -1,4 +1,4 @@
-Page\: `Setup -> Data`
+Page\: `Setup -> Input`
 
 For a full list of supported Inputs, see [Supported Input Devices](Supported-Inputs.md).
 
@@ -8,32 +8,24 @@ Inputs, such as sensors, ADC signals, or even a response from a command, enable 
 
 See [Building a Custom Input Module](https://github.com/kizniche/Mycodo/wiki/Building-a-Custom-Input-Module) Wiki page.
 
-There is a Custom Input import system in Mycodo that allows user-created Inputs to be created an used in the Mycodo system. Custom Inputs can be uploaded and imported from the `[Gear Icon] -> Configure -> Custom Inputs` page. After import, they will be available to use on the `Setup -> Data` page.
+There is a Custom Input import system in Mycodo that allows user-created Inputs to be created an used in the Mycodo system. Custom Inputs can be uploaded and imported from the `[Gear Icon] -> Configure -> Custom Inputs` page. After import, they will be available to use on the `Setup -> Input` page.
 
-If you have a sensor that is not currently supported by Mycodo, you can build your own input module and import it into Mycodo.
+If you develop a working Input module, please consider [creating a new GitHub issue](https://github.com/kizniche/Mycodo/issues/new?assignees=&labels=&template=feature-request.md&title=New%20Module) or pull request, and it may be included in the built-in set.
 
-Open any of the built-in modules located in the inputs directory (<https://github.com/kizniche/Mycodo/tree/master/mycodo/inputs/>) for examples of the proper formatting.
+Open any of the built-in modules located in the directory [Mycodo/mycodo/inputs](https://github.com/kizniche/Mycodo/tree/master/mycodo/inputs/) for examples of the proper formatting.
 
-There's also minimal input module template that generates random data as an example:
-
-<https://github.com/kizniche/Mycodo/tree/master/mycodo/inputs/examples/minimal_humidity_temperature.py>
-
-There's also an input module that includes all available INPUT_INFORMATION options along with descriptions:
-
-<https://github.com/kizniche/Mycodo/tree/master/mycodo/inputs/examples/example_all_options_temperature.py>
+There are also example Custom Inputs in the directory [Mycodo/mycodo/inputs/examples](https://github.com/kizniche/Mycodo/tree/master/mycodo/inputs/examples)
 
 Additionally, I have another github repository devoted to Custom Modules that are not included in the built-in set, at [kizniche/Mycodo-custom](https://github.com/kizniche/Mycodo-custom).
 
 ### Input Actions
 
-Input Actions are functions within the Input module that can be executed from the Web UI. This is useful for things such as calibration or other functionality specific to the input. By default there is at least one action, Acquire Measurements Now, which will cause the input to acquire measurements rather than waiting until the next Period has elapsed.
+Input Actions are functions within the Input module that can be executed from the Web UI. This is useful for things such as calibration or other functionality specific to the input. By default, there is at least one action, Acquire Measurements Now, which will cause the input to acquire measurements rather than waiting until the next Period has elapsed.
 
 !!! note
     Actions can only be executed while the Input is active.
 
 ### Input Options
-
-In addition to several supported sensors and devices, a Linux command may be specified that will be executed and the return value stored in the measurement database to be used throughout the Mycodo system.
 
 <table>
 <thead>
@@ -228,7 +220,7 @@ In addition to several supported sensors and devices, a Linux command may be spe
 
 [The Things Network](https://www.thethingsnetwork.org/) (TTN) Input module enables downloading of data from TTN if the Data Storage Integration is enabled in your TTN Application. The Data Storage Integration will store data for up to 7 days. Mycodo will download this data periodically and store the measurements locally.
 
-The payload on TTN must be properly decoded to variables that correspond to the "Name" option under "Select Measurements", in the lower section of the Input options. For instance, in your TTN Application, if a custom Payload Format is selected, the decoder code may look like this:
+The payload on TTN must be properly decoded to variables that correspond to the "Variable Name" option under "Channel Options", in the lower section of the Input options. For instance, in your TTN Application, if a custom Payload Format is selected, the decoder code may look like this:
 
 ```javascript
 function Decoder(bytes, port) {
@@ -249,9 +241,11 @@ function sflt162f(rawSflt16) {
 }
 ```
 
-This will decode the 2-byte payload into a temperature float value with the name "temperature". Set "Number of Measurements" to "1", then set the "Name" for the first channel (CH0) to "temperature" and the "Measurement Unit" to "Temperature: Celsius (°C)".
+This will decode the 2-byte payload into a temperature float value with the name "temperature". Set "Number of Measurements" to "1", then set the "Variable Name" for the first channel (CH0) to "temperature" and the "Measurement Unit" to "Temperature: Celsius (°C)".
 
 Upon activation of the Input, data will be downloaded for the past 7 days. The latest data timestamp will be stored so any subsequent activation of the Input will only download new data (since the last known timestamp).
+
+This Input also allows multiple measurements to be stored. You merely have to change "Number of Measurements" to a number larger than 1, save, and there will now be multiple variable names and measurement units to set.
 
 There are several example Input modules that, in addition to storing the measurements of a sensor in the influx database, will write the measurements to a serial device. This is useful of you have a LoRaWAN transmitter connected via serial to receive measurement information from Mycodo and transmit it to a LoRaWAN gateway (and subsequently to The Things Network). The data on TTN can then be downloaded elsewhere with the TTN Input. These example Input modules are located in the following locations:
 
@@ -274,4 +268,4 @@ This is useful if multiple data strings are to be sent to the same serial device
 
 The full code used to decode both `bme280_ttn.py` and `k30_ttn.py`, with informative comments, is located at `~/Mycodo/mycodo/inputs/examples/ttn_data_storage_decoder_example.js`.
 
-These example Input modules may be modified to suit your needs and imported into Mycodo through the `[Gear Icon] -> Configure -> Custom Inputs` page. After import, they will be available to use on the `Setup -> Data` page.
+These example Input modules may be modified to suit your needs and imported into Mycodo through the `[Gear Icon] -> Configure -> Custom Inputs` page. After import, they will be available to use on the `Setup -> Input` page.

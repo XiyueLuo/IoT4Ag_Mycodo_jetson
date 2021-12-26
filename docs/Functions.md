@@ -1,14 +1,25 @@
 Page\: `Setup -> Function`
 
+For a full list of supported Inputs, see [Supported Functions](Supported-Functions.md).
+
 Function controllers perform tasks that often involve the use of Inputs and Outputs.
+
+!!! note
+    "Last" means the Function will only acquire the last (latest) measurement in the database. "Past" means the Function will acquire all measurements from the present until the "Max Age (seconds)" that's been set (e.g. if measurements are acquired every 10 seconds, and a Max Age is set to 60 seconds, there will on average be 6 measurements returned to the Function to operate with).
 
 ## Custom Functions
 
-There is a Custom Function import system in Mycodo that allows user-created Controllers to be used in the Mycodo system. Custom Functions can be uploaded on the `[Gear Icon] -> Configure -> Custom Functions` page. After import, they will be available to use on the `Setup -> Function` page.
+There is a Custom Function import system in Mycodo that allows user-created Functions to be used in the Mycodo system. Custom Functions can be uploaded on the `[Gear Icon] -> Configure -> Custom Functions` page. After import, they will be available to use on the `Setup -> Function` page.
 
-There are also example Custom Function files in `Mycodo/mycodo/functions/examples`
+If you develop a working Function module, please consider [creating a new GitHub issue](https://github.com/kizniche/Mycodo/issues/new?assignees=&labels=&template=feature-request.md&title=New%20Module) or pull request, and it may be included in the built-in set.
+
+Open any of the built-in modules located in the directory [Mycodo/mycodo/functions](https://github.com/kizniche/Mycodo/tree/master/mycodo/functions/) for examples of the proper formatting.
+
+There are also example Custom Functions in the directory [Mycodo/mycodo/functions/examples](https://github.com/kizniche/Mycodo/tree/master/mycodo/functions/examples)
 
 Additionally, I have another github repository devoted to Custom Modules that are not included in the built-in set, at [kizniche/Mycodo-custom](https://github.com/kizniche/Mycodo-custom).
+
+For Functions that require new measurements/units, they can be added on the `[Gear Icon] -> Configure -> Measurements` page.
 
 ## PID Controller
 
@@ -129,8 +140,6 @@ PID Controllers can control a number of different output types (e.g. duration, v
 PID tuning can be a complex process, depending on the output device(s) used and the environment or system under control. A system with large perturbations will be more difficult to control than one that is stable. Similarly, output devices that are unsuitable may make PID tuning difficult or impossible. Learning how PID controllers operate and the theory behind their tuning will not only better prepare you to operate a PID controller, but also in the development of your system and selection and implementation of the output devices used to regulate your system. 
 
 #### PID Tuning Resources
-
- - [Mycodo PID Tuning Forum](https://kylegabriel.com/forum/pid-tuning/).
 
  - [Sous Vide PID Tuning and the Unexpected Electrical Fire](https://hackaday.io/project/11997-mycodo-environmental-regulation-system/log/45733-sous-vide-pid-tuning-and-the-unexpected-electrical-fire)
 
@@ -460,6 +469,14 @@ Python 3 is the environment that these conditionals will be executed. The follow
 <tr>
 <td>self.logger.info()</td>
 <td>Writes a log line to the Daemon log. "info" may also be changed to "warning", "error" or "debug". Debug log lines will only appear in the Daemon log when Logging Level: Debug is enabled for the Input.</td>
+</tr>
+<tr>
+<td>self.set_custom_option("option", value)</td>
+<td>Writes the value to the database for retrieval later. The option argument should be a string, and value can be a string, integer, float, list, or dictionary.</td>
+</tr>
+<tr>
+<td>self.get_custom_option("option")</td>
+<td>Reads the value from the database that was previously written with self.set_custom_option(). Returns None if the option is not found or there is no value.</td>
 </tr>
 </tbody>
 </table>
@@ -921,10 +938,6 @@ These are the actions that can be added to Controllers (i.e. Conditional, Trigge
 <tr>
 <td>Execute Command</td>
 <td>Execute a command in the linux shell (as user 'root').</td>
-</tr>
-<tr>
-<td>Infrared Remote Send</td>
-<td>Send an infrared signal.</td>
 </tr>
 <tr>
 <td>LCD: Backlight</td>

@@ -8,10 +8,12 @@ Mycodo is open source software for the [Raspberry Pi](https://en.wikipedia.org/w
 
 See the [README](https://github.com/kizniche/Mycodo#uses) for features, projects using Mycodo, screenshots, and other information.
 
+This manual is also [available as a PDF](https://kizniche.github.io/Mycodo/mycodo-manual.pdf) for offline reading.
+
 ### Prerequisites
 
 *   [Raspberry Pi](https://www.raspberrypi.org/) single-board computer (any version: Zero, 1, 2, 3, or 4)
-*   [Raspberry Pi Operating System](https://www.raspberrypi.org/downloads/raspbian/) flashed to a micro SD card
+*   [Raspberry Pi Operating System](https://www.raspberrypi.org/downloads/raspbian/) installed
 *   An active internet connection
 
 ### Install
@@ -33,7 +35,7 @@ https://127.0.0.1
 *   [Mycodo on GitHub](https://github.com/kizniche/Mycodo)
 *   [Mycodo Wiki](https://github.com/kizniche/Mycodo/wiki)
 *   [Mycodo API](https://kizniche.github.io/Mycodo/mycodo-api.html)
-*   [Mycodo Forum](https://kylegabriel.com/forum/)
+*   [Mycodo Forum](https://forum.kylegabriel.com)
 *   [Mycodo Support](https://play.google.com/store/apps/details?id=com.mycodo.mycododocs) (Android App)
 
 ### Donate

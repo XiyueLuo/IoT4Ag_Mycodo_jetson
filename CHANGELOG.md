@@ -1,4 +1,467 @@
-## 8.9.0 (Unreleased)
+## 8.12.9 (2021-12-02)
+
+### Bugfixes
+
+ - Fix inability to install due to missing pip
+ - Fix MCP23017 Output dependency ([#1095](https://github.com/kizniche/mycodo/issues/1095))
+ - Fix restoring backups causing upgrade page to not be usable until .upgrade file is deleted
+ - Fix .upgrade file interfering with upgrade page rendering ([#1096](https://github.com/kizniche/mycodo/issues/1096))
+ - Fix conversion foreign key in measurement API endpoint ([#1011](https://github.com/kizniche/mycodo/issues/1011))
+ - Fix issues with Ajax data refreshing when Input/Output/Function saved
+ - Fix refreshing Function Actions upon addition/deletion
+ - Fix refreshing output configurations
+ - Fix DS3502 Output step calculations
+
+### Features
+
+ - Add Input: TTN Integration: Data Storage (TTN v3), replaces deprecated TTN v2 Input (deprecated 12/2021)
+ - Add Input: HTU21D Variant using the CircuitPython library
+ - Add Input: SCD-4x (40, 41) CO2/Temp/Hum sensor
+ - Add Input: Si7021 Temp/Hum sensor
+ - Add PWM Output option: Invert Stored Signal
+
+### Miscellaneous
+
+ - Remove Output Quantity option when adding outputs
+ - Change Live page refresh to that of the device measurement period
+
+
+## 8.12.8 (2021-10-27)
+
+### Bugfixes
+
+ - Fix SQLAlchemy bug preventing install
+
+
+## 8.12.7 (2021-10-25)
+
+This is a bugfix release that includes a fix to a severe security vulnerability. It is recommended that all users that have Mycodo exposed to the internet and allow guest access upgrade to patch this vulnerability. Users that only run Mycodo on a local network and/or don't allow unknown user (i.e. guest) access likely won't be affected.
+
+### Bugfixes
+
+ - Fix refreshing LCD Display Function line options when changing number of lines
+ - Fix installation of Function Action dependencies
+ - Fix error when unauthenticated users attempting to land on the home page
+ - Fix Gauge Widget dependencies ([#1100](https://github.com/kizniche/mycodo/issues/1100))
+ - Fix installation of pigpiod
+ - Fix file exploit vulnerability ([#1105](https://github.com/kizniche/mycodo/issues/1105))
+
+### Features
+
+ - Add ability to install on most Debian-based systems
+ - Add ability for Actions to work on Function Controllers
+ - Add LCD Backlight On/Off Actions to LCD Functions ([#1089](https://github.com/kizniche/mycodo/issues/1089))
+ - Add Input: SHT2x (using alternate sht20 library with more accurate measurements and settable temperature resolution)
+ - Add Input: SHTC3
+
+### Miscellaneous
+
+ - Update python packages
+
+
+## 8.12.6 (2021-09-03)
+
+### Bugfixes
+
+ - Fix accessing dependency page ([#1082](https://github.com/kizniche/mycodo/issues/1082))
+ - Fix loading Input page if Math controllers are present ([#1083](https://github.com/kizniche/mycodo/issues/1083))
+ - Fix MQTT JSON Input dependency version ([#1085](https://github.com/kizniche/mycodo/issues/1085))
+
+### Features
+
+ - Add Inputs: MLX90393, DPS310
+
+
+## 8.12.5 (2021-09-01)
+
+### Bugfixes
+
+ - Fix aggregate dependency page ([#1082](https://github.com/kizniche/mycodo/issues/1082))
+
+
+## 8.12.5 (2021-09-01)
+
+### Bugfixes
+
+ - Fix loading of dependency install page
+ - Prevent loading of Highstock JS more than once
+
+
+## 8.12.4 (2021-08-31)
+
+### Bugfixes
+
+ - Fix Input temperature compensation
+
+### Features
+
+ - Add ability to set Dependency Message to be displayed on dependency install page
+
+
+## 8.12.3 (2021-08-31)
+
+### Bugfixes
+
+ - Fix redrawing Graph/Gauge Widgets on resize
+ - Fix Gauge Widget dark theme ([#1080](https://github.com/kizniche/mycodo/issues/1080))
+ - Really fix missing channels for Atlas EC sensor
+
+
+## 8.12.2 (2021-08-30)
+
+### Bugfixes
+
+ - Fix missing channels for Atlas EC sensor
+
+
+## 8.12.1 (2021-08-30)
+
+### Bugfixes
+
+ - Fix display of Graph and Gauge Widgets on dashboard ([#1078](https://github.com/kizniche/mycodo/issues/1078))
+
+
+## 8.12.0 (2021-08-29)
+
+This release changes the way settings are saved, which requires a change to any custom Inputs/Outputs/Functions you have in use. If your custom module includes the seldom-used execute_at_modification() function (such as Mycodo/mycodo/inputs/python_code.py), you will need to change the parameters as well as the return variables.
+
+Before:
+
+```python
+def execute_at_modification(
+        mod_entry,
+        request_form,
+        custom_options_dict_presave,
+        custom_options_channels_dict_presave,
+        custom_options_dict_postsave,
+        custom_options_channels_dict_postsave):
+    allow_saving = True  # Allows saving of options to occur
+    return (allow_saving,
+            mod_entry,
+            custom_options_dict_postsave,
+            custom_options_channels_dict_postsave)
+```
+
+After:
+
+```python
+def execute_at_modification(
+        messages,
+        mod_entry,
+        request_form,
+        custom_options_dict_presave,
+        custom_options_channels_dict_presave,
+        custom_options_dict_postsave,
+        custom_options_channels_dict_postsave):
+     # messages["page_refresh"] = True  # Setting to True will cause the options on the user's page to refresh
+     # messages["error"].append("Some error")  # Uncomment this line to prevent options saving
+     # messages["warning"].append("This will be a warning message")
+     # messages["info"].append("This will be an info message")
+     if not messages["error"]:
+        messages["success"].append("Successfully completed execute_at_modification()")
+     return (messages,
+             mod_entry,
+             custom_options_dict_postsave,
+             custom_options_channels_dict_postsave)
+```
+
+Additionally, if you are currently using the MQTT JSON Input and your topics contain any special characters, you will need to enclose the topic in quotes (e.g. sensor-1 to "sensor-1").
+
+### Bugfixes
+
+ - Fix taking photos with camera library "raspistill" when AWB set to off
+ - Fix issue querying graph data
+ - Fix flag/tag newlines on asynchronous graphs
+ - Fix single quotes in translations causing error ([#1019](https://github.com/kizniche/mycodo/issues/1019))
+ - Fix CCS811 Input dependency install issue ([#1023](https://github.com/kizniche/mycodo/issues/1023))
+ - Fix sense-hat dependency issue
+ - Fix saving Output checkboxes ([#1029](https://github.com/kizniche/mycodo/issues/1029))
+ - Fix PiOLED Functions ([#1030](https://github.com/kizniche/mycodo/issues/1030))
+ - Fix PID controller properly reporting if Held/Paused
+ - Fix cmd_output() killing daemon upon command timeout ([#1047](https://github.com/kizniche/mycodo/issues/1047))
+ - Fix missing check for Widget dependencies during upgrade/restore
+ - Fix output_sec_currently_on()
+ - Fix Widgets being able to be moved/resized when dashboard locked
+ - Fix Indicator Widget unit not using correct font size
+ - Fix display of tags on more than one Graph Widget
+ - Fix first channel of L298N DC Motor Controller Output not working
+ - Fix setting Graph Widget custom colors when tag selected
+ - Fix Graph Widget custom colors when more than one Input selected
+ - Fix note array memory leak on Graph Widgets
+ - Fix FTDI device detection on Output page
+ - Fix sending commands to Atlas Scientific devices via FTDI
+ - Fix Atlas Scientific Peristaltic Pump Output calibration
+ - Fix temperature compensation unit conversion for Atlas ORP, EC, and pH sensors ([#1064](https://github.com/kizniche/mycodo/issues/1064))
+ - Fix Camera Widget displaying time-lapse images ([#1072](https://github.com/kizniche/mycodo/issues/1072))
+ - Fix Activate/Deactivate Actions not working for Functions
+
+### Features
+
+ - Add ability to install Javascript/CSS dependencies
+ - Add ability to submit forms without refreshing the page ([#1040](https://github.com/kizniche/mycodo/issues/1040))
+ - Add ability to install dependencies without changing the page
+ - Add drag and drop sorting of Inputs/Outputs/Functions
+ - Add modal dialog for Input/Output/Function configuration
+ - Add option for a numerical keypad login
+ - Add options for camera library raspistill: AWB Gain Blue, AWB Gain Red
+ - Add Input: ADS1256 with Analog pH/EC sensors
+ - Add Input: SI1145 Light/Proximity sensor
+ - Add Output: MCP23017 16-Channel I/O Expander (On/Off)
+ - Add return status to Conditional Controllers
+ - Add 2- and 4-line variants of SSD1306 Display Functions and extra Options ([#1030](https://github.com/kizniche/mycodo/issues/1030))
+ - Add calibration to the Atlas Scientific EC Input Peristaltic Pump Output
+ - Add Spacers for Input and Output lists
+ - Add PDF Manual
+ - Add ability to set the Indicator Widget's unit font size
+ - Add temperature compensation to Atlas Dissolved Oxygen sensor
+ - Add TDS, Salinity, and Specific Gravity measurements for Atlas Scientific EC sensor ([#1065](https://github.com/kizniche/mycodo/issues/1065))
+ - Add ability to define new Flask endpoints in Widget modules
+
+### Miscellaneous
+
+ - Replace TravisCI (no longer free) with [Github Actions](https://github.com/kizniche/Mycodo/actions/workflows/main.yml) to perform unit tests
+ - Update KP303 library ([#1028](https://github.com/kizniche/mycodo/issues/1028))
+ - Add Try/Except for checking Output Triggers ([#1037](https://github.com/kizniche/mycodo/issues/1037))
+ - Speed up loading of Camera page
+ - Update Gridstack to the latest version
+ - Ensure Atlas DO sensor only returns DO ([#1052](https://github.com/kizniche/mycodo/issues/1052))
+ - Remove Highcharts/Highstock Javascript from package to be compliant with licensing
+ - Remove calibration page (all functionality has been moved to modules)
+ - Place Output columns at back of Graph Widget charts
+ - Add Measurements/Units: Specific Gravity, Salinity, Total Dissolved Solids, Parts per Thousand
+ - Add conversions for Parts per Thousand
+ - Specify virtualenv install version in requirements.txt ([#1067](https://github.com/kizniche/mycodo/issues/1067))
+ - Enable server-side Flask session
+
+
+## 8.11.0 (2021-06-05) 
+
+### Bugfixes
+
+ - Fix upgrading database to version 61a0d0568d24
+ - Fix Generic Pump Output timestamps
+ - Fix inability to add Camera Widget for some cameras
+ - Fix error referencing key of Input dict that doesn't exist
+ - Fix unnecessary reference to measurement dict causing error ([#1001](https://github.com/kizniche/mycodo/issues/1001), [#1005](https://github.com/kizniche/mycodo/issues/1005))
+ - Add missing dependency for HC-SR04 Input ([#1003](https://github.com/kizniche/mycodo/issues/1003))
+ - Fix 'id' KeyError when saving certain Inputs ([#1004](https://github.com/kizniche/mycodo/issues/1004))
+ - Fix I2C PiOLED Display Functions
+ - Fix clearing total volume of Hall Flow Input ([#994](https://github.com/kizniche/mycodo/issues/994))
+ - Fix SSD1306 OLED Display Function initialization
+ - Fix PID Min/Max options not being respected ([#998](https://github.com/kizniche/mycodo/issues/998))
+ - Fix error when PWM Output duty cycle is 0
+ - Change pin default when creating an Output from 0 to None
+ - Don't run Output shutdown function if not set up
+ - Fix Controller custom_option messages not being visible
+ - Fix output state checking not handling errors ([#990](https://github.com/kizniche/mycodo/issues/990))
+ - Fix BME680 Input dependency
+ - Fix GrovePi DHT Input
+ - Fix Method dependencies not being installed
+ - Prevent non-streamable camera types from being selected to stream in Camera Widget ([#991](https://github.com/kizniche/mycodo/issues/991))
+
+### Features
+
+ - Add ability to set decimal places for Angular and Solid Gauge Widgets
+ - Add ability to lock Dashboards (remove ability to edit widget options) ([#996](https://github.com/kizniche/mycodo/issues/996))
+ - Add ability to display the status of Functions and PID Controllers in the UI
+ - Add Widget: Function Status
+ - Add Conditional Controller option: Timeout (seconds)
+ - Add Function Actions: Camera Timelapse Pause/Resume
+ - Add Temperature Compensation for Atlas Scientific pH Input during calibration
+ - Add Output channel names to Graph Widget multi-select and legend
+ - Add Function: Backup to Remote Host (rsync)
+ - Add Input: Anyleaf Electrical Conductivity
+ - Add ability to calibrate Atlas Scientific ORP and DO sensors
+ - Add ability to change I2C address of Atlas Scientific devices
+ - Add Input: CCS811 (without temperature) ([#992](https://github.com/kizniche/mycodo/issues/992))
+ - Add Input: MQTT Subscribe (JSON payload)
+ - Add Output: Grove I2C Motor Driver (TB6612FNG, Board v1.0)
+ - Add Output: Grove I2C Motor Driver (Board v1.3)
+ - Make Enable Pin optional for L298N Output
+
+
+## 8.10.1 (2021-04-27)
+
+### Bugfixes
+
+ - Fix warning preventing saving of Python code
+ - Fix Sense Hat Input dependency
+
+### Features
+
+ - Add Input: Atlas Scientific humidity sensor
+ - Add Camera: raspistill
+ - Make Add Output dropdown searchable
+
+### Miscellaneous
+
+ - Add "Both" direction option for On/Off and PWM Bang-Bang Outputs
+
+
+## 8.10.0 (2021-04-24)
+
+This release contains changes that requires modification to any Custom Functions you may have in use. In order for the new features to work for Custom Functions, it required the use of an abstract base function class (similarly to Inputs and Outputs). As a result, any Custom Functions that previously were formatted as such:
+
+```python
+from mycodo.controllers.base_controller import AbstractController
+
+class CustomModule(AbstractController, threading.Thread):
+    """
+    Class to operate custom controller
+    """
+    def __init__(self, ready, unique_id, testing=False):
+        threading.Thread.__init__(self)
+        super(CustomModule, self).__init__(ready, unique_id=unique_id, name=__name__)
+
+        self.unique_id = unique_id
+        self.log_level_debug = None
+
+        # Set custom options
+        custom_function = db_retrieve_table_daemon(
+            CustomController, unique_id=unique_id)
+        self.setup_custom_options(
+            FUNCTION_INFORMATION['custom_options'], custom_function)
+```
+
+will need to be changed to the format:
+
+```python
+from mycodo.functions.base_function import AbstractFunction
+
+class CustomModule(AbstractFunction):
+    """
+    Class to operate custom controller
+    """
+    def __init__(self, function, testing=False):
+        super(CustomModule, self).__init__(function, testing=testing, name=__name__)
+
+        # Note: The following 2 lines are no longer needed to be defined here. Delete them.
+        # self.unique_id = function.unique_id  
+        # self.log_level_debug = None
+
+        # Set custom options
+        custom_function = db_retrieve_table_daemon(
+            CustomController, unique_id=self.unique_id)  # Note: "self." is added here
+        self.setup_custom_options(
+            FUNCTION_INFORMATION['custom_options'], custom_function)
+
+        # These two lines are new and are required to execute initialize_variables()
+        if not testing:
+            self.initialize_variables()
+```
+
+You also no longer need to define the following (i.e. you can remove these lines):
+
+```python
+controller = db_retrieve_table_daemon(
+    CustomController, unique_id=self.unique_id)
+self.log_level_debug = controller.log_level_debug
+self.set_log_level_debug(self.log_level_debug)
+```
+
+Additionally, if you have pre_stop() in your Function Class, it will need to be renamed to stop_function().
+
+There are two ways to perform these changes.
+
+Method A:
+
+1. Deactivate all custom functions.
+2. Delete all custom functions on the Setup -> Function page.
+3. Delete all custom functions on the Configure -> Custom Functions page.
+4. Perform the Mycodo upgrade.
+5. Make the necessary edits to all your Custom Functions.
+6. Import all your updated Custom Functions on the Configure -> Custom Functions page.
+7. Add and configure your Custom Functions on the Setup -> Function page.
+
+Method B:
+
+1. Either SSH into your Raspberry Pi or use a keyboard/mouse/monitor and edit the Custom Functions in the ~/Mycodo/mycodo/function/custom_functions directory.
+2. Perform the Mycodo upgrade.
+
+Method A is more involved, but does not require accessing the Pi from outside the web UI. Method B has fewer steps and doesn't require deleting and reconfiguring new Functions, but requires being able to SSH in to your Raspberry Pi or connecting a keyboard/mouse/monitor to be able to edit the files in-place.
+
+As always, a backup of the current system files and settings is performed during an upgrade, allowing you to restore your system to a previous release state if needed.
+
+### Bugfixes
+
+ - Fix camera paths not saving ([#955](https://github.com/kizniche/mycodo/issues/955))
+ - Fix returning pylint3 report after saving Python Code
+ - Fix detection of multiple cameras by opencv
+ - Fix SCD30 (CircuitPython) Input ([#963](https://github.com/kizniche/mycodo/issues/963))
+ - Fix importing Mycodo Settings ZIP if custom modules were exported ([#967](https://github.com/kizniche/mycodo/issues/967))
+ - Fix inability to install picamera library on some Pi 4s ([#967](https://github.com/kizniche/mycodo/issues/967))
+ - Fix VPD Function saving and calculating pressure conversion ([#978](https://github.com/kizniche/mycodo/issues/978))
+ - Fix pressure conversion equations ([#978](https://github.com/kizniche/mycodo/issues/978))
+ - Fix issues with Function channels/measurements
+ - Fix Mijia LYWSD03MMC Input using a nonexistent pybluez version
+ - Fix Hall Flow Input
+ - Remove Flask-Session to resolve bug preventing frontend loading ([#971](https://github.com/kizniche/mycodo/issues/971))
+
+### Features
+
+ - Add Input: SHT41x
+ - Add Input: Adafruit I2C capacitive soil sensor
+ - Add Input: CircuitPython variants of the BME280 and SHT31-D Inputs
+ - Add Input: KP303 Smart WiFi Power Strip ([#980](https://github.com/kizniche/mycodo/issues/980))
+ - Add Input: Generic Analog pH/EC using ADS1115 ADC
+ - Add Input: Tasmota Outlet Energy Monitor
+ - Add Output: DS3502 Digital Potentiometer
+ - Add Output: ULN2003 Unipolar Stepper Motor Driver
+ - Add Function: SSD1309 Display
+ - Add Function: Bang-Bang PWM
+ - Add Function Action: MQTT Publish
+ - Add Function Action: webhook to emit HTTP requests ([discussion](https://kylegabriel.com/forum/general-discussion/webhook-action/))
+ - Partial conversion of Display/LCD controllers to Display Functions
+ - Add external temperature compensation for Anyleaf pH Input
+ - Add ability to set camera stream frames per second
+ - Add missing stream resolution option to opencv cameras
+ - Add ability for Atlas Scientific Peristaltic Pump Outputs to run in reverse
+ - Add new ADC measurement rescaling method: Equation
+ - Add Custom Actions to Functions
+ - Add "wait_for_return" option to Custom Actions
+ - Convert all LCD/Display controllers to Functions
+ - Add ability to not have to set time-lapse end (defaults to 10 years) ([#987](https://github.com/kizniche/mycodo/issues/987))
+
+### Miscellaneous
+
+ - Add Measurements: Apparent Power, Reactive Power, Power Factor
+ - Add Units: kilowatt-hour, Watt, Volt-Amps, Volt-Amps-Reactive
+ - Specify package versions for pypi dependencies
+ - Update python libraries
+ - Add unit testing for Custom Functions
+ - Add ability to change theme from Config dropdown menu
+
+
+## 8.9.2 (2021-03-16)
+
+This bugfix release changes how sessions are handled and as a result will log all users out following the upgrade.
+
+### Bugfixes
+
+ - Fix Function measurements not appearing in some dropdowns
+ - Fix displaying saved Custom Option values when Inputs/Outputs have Custom Actions ([#952](https://github.com/kizniche/mycodo/issues/952))
+ - Fix silent failures when cookies are too large ([#950](https://github.com/kizniche/mycodo/issues/950))
+ - Fix use of select_measurement_channel custom option in controllers ([#953](https://github.com/kizniche/mycodo/issues/953))
+ - Fix error-handling of erroneous measurements/units ([#949](https://github.com/kizniche/mycodo/issues/949))
+
+
+## 8.9.1 (2021-03-13)
+
+### Bugfixes
+
+ - Fix API deactivating controller in database ([#944](https://github.com/kizniche/mycodo/issues/944))
+ - Fix invalid conversion ([#947](https://github.com/kizniche/mycodo/issues/947))
+ - Fix inability to save MQTT Input ([#946](https://github.com/kizniche/mycodo/issues/946))
+ - Fix Camera Widget ([#948](https://github.com/kizniche/mycodo/issues/948))
+
+
+## 8.9.0 (2021-03-08)
+
+This release contains bug fixes and several new types of Inputs and Outputs. These include stepper motors, digital-to-analog converters, a multi-channel PWM output, as well as an input to acquire current and future weather conditions.
+
+This release also deprecates Math controllers. Current Math controllers will continue to function, but new Math controllers cannot be created. Instead, all Math controller functionality has been ported to Functions (Setup -> Function page), in order to reduce complexity and improve customizability. Much like Inputs and Outputs, Functions are single-file modules that can be created by users and imported. Take a look at the Mycodo/mycodo/functions directory for the built-in Function modules.
+
+The new weather input acquires current and future weather conditions from openweathermap.org with either a city (200,000 to choose from) or latitude/longitude for a location and a time frame from the present up to 7 days in the future, with a resolution of days or hours. An API key to use the service is free and the measurements returned include temperature (including minimum and maximum if forecasting days in the future), humidity, dew point, pressure, wind speed, and wind direction. This can be useful for incorporating current or future weather conditions into your conditional controllers or other functions or calculations. For instance, you may prevent Mycodo from watering your outdoor plants if the forecasted temperature in the next 12 to 24 hours is below freezing. You may also want to be alerted by email if the forecasted weather conditions are extreme. Not everyone wants to set up a weather station, but might still want to have local outdoor measurements, so this input was made to bridge that gap.
 
 ### Bugfixes
 
@@ -19,6 +482,20 @@
  - Fix Conditional sample_rate not being set from Config
  - Fix Saving Angular and Solid Gauge Widget stop values ([#916](https://github.com/kizniche/mycodo/issues/916))
  - Fix uncaught exception if trying to acquire image when opencv can't detect a camera ([#917](https://github.com/kizniche/mycodo/issues/917))
+ - Fix displaying input/output pypi.org dependencies with "=="
+ - Fix pressure measurement in BME680 and BME280 Inputs ([#923](https://github.com/kizniche/mycodo/issues/923))
+ - Fix controllers disappearing following reorder ([#925](https://github.com/kizniche/mycodo/issues/925))
+ - Fix Inputs that use w1thermsensor ([#926](https://github.com/kizniche/mycodo/issues/926))
+ - Fix issue generating documentation for similar Inputs/Outputs/Widgets
+ - Fix execution of Input stop_input()
+ - Fix Input Pre-Outputs not turning on
+ - Fix Output not activating for Camera
+ - Fix PWM trigger and Duration Method ([#937](https://github.com/kizniche/mycodo/issues/937))
+ - Fix stopping Trigger Controllers ([#940](https://github.com/kizniche/mycodo/issues/940))
+ - Fix Tags not appearing in Graph Widgets
+ - Fix variable measurement Inputs saving correctly
+ - Fix detection of custom_option save type (CSV or JSON) for proper parsing
+ - Fix saving of unchecked checkboxes when using forms
 
 ### Features
 
@@ -32,20 +509,47 @@
  - Add Input: Grove Pi DHT11/22 sensor
  - Add Input: HC-SR04 Ultrasonic Distance sensor
  - Add Input: SCD30 CO2/Humidity/Temperature sensor
+ - Add Input: Current Weather from OpenWeatherMap.org (Free API Key, Latitude/Longitude, 200,000 cities, Humidity/Temperature/Pressure/Dewpoint/Wind Speed/Wind Direction)
+ - Add Input: Forecast Hourly/Daily Weather from OpenWeatherMap.org (Free API Key, , Humidity/Temperature/Pressure/Dewpoint)
+ - Add Input: Raspberry Pi Sense HAT (humidity/temperature/pressure/compass/magnetism/acceleration/gyroscope)
+ - Add Input: Xiaomi Mijia LYWSD03MMC
+ - Add Input: Atlas Scientific CO2 sensor
+ - Add Input: AHTx0 Temperature/Humidity sensor
+ - Add Input: BME680 (Circuitpython)
+ - Add measurements to Custom Controllers
+ - Add Measurement and Unit: Speed, Meters/Second
+ - Add Measurement and Unit: Direction, Bearing
+ - Add Conversions: m/s <-> mph <-> knots, hour <-> minutes and seconds
  - Add LCD: Grove RGB LCD
- - Add Function: bang-bang/hysteretic
+ - Add Function: Bang-bang/hysteretic
  - Add Function Action: Output Value
  - Add Function Action: Set LCD Backlight Color
  - Add configurable link for navbar brand link
  - Add User option to Shell Command Function Action
  - Add Message and New Line options to Custom Options of Outputs
  - Add set_custom_option/get_custom_option to Conditionals ([#901](https://github.com/kizniche/mycodo/issues/901))
+ - Add ability to login with username/password using MQTT Input and Outputs
+ - Add ability to use Custom Channel Options with Inputs (first used in MQTT Input)
+ - Add Custom Functions/Inputs/Outputs/Widgets to Settings Export/Import
+ - Add user_scripts directory for user code that's preserved during upgrade/export/import ([#930](https://github.com/kizniche/mycodo/issues/930))
+ - Add pin mode option (float, pull-up, pull-down) for Edge and State Inputs
+ - Add Method: Cascaded Method, allows combining (multiply) any number of existing methods
+ - Add Functions and to API
+ - Add missing Input Channels to Input API calls
 
 ### Miscellaneous
 
+ - Remove lirc
  - Change widget title styles
  - Fix GCC warnings ([#906](https://github.com/kizniche/mycodo/issues/906))
  - Remove default user "pi" with "mycodo" (for compatibility with non-Raspberry Pi operating systems)
+ - Update pyusb to 1.1.1
+ - Refactor Edge detection Input
+ - Refactor method implementation from single large method into multiple small classes
+ - Changed duration method start- and end-time handling
+ - Port Math controllers to Functions: Equation (Single/Multi), Difference, Statistics (Single/Multi), Average (Single/Multi), Sum (Single/Multi), Wet-Bulb Humidity, Redundancy, Vapor Pressure Deficit, Verification
+ - Deprecate Math controllers
+ - Remove Math controllers from and add Functions to Live page
 
 
 ## 8.8.8 (2020-10-30)
@@ -409,7 +913,7 @@ WARNING: There are changes with this version that may cause issues with your cur
  - Add Conditional options: Log Level Debug and Message Includes Code
  - Add Force Command option for Command/Python/Wireless Outputs ([#728](https://github.com/kizniche/mycodo/issues/728))
  - Add ability to select which user executes Linux Output commands ([#719](https://github.com/kizniche/mycodo/issues/719))
- - Add Cameras: URL (urllib), URL (requests) ([Feature Request - IP Camera/Network Camera](https://kylegabriel.com/forum/general-discussion/feature-request-ip-camera-network-camera-stream))
+ - Add Cameras: URL (urllib), URL (requests) 
  - Add ability to encode videos from time-lapse image sets
  - Add send_email() to Daemon Control object
 
