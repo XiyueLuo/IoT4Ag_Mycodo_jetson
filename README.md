@@ -9,7 +9,7 @@ Install dependancy:
 sudo apt-get update
 sudo apt-get install gawk curl nano unzip nginx
 sudo apt-get install python3-pip
-pip3 install six wemo==1.0.4
+pip3 install six wemo==1.0.4 pywemo
 ```
 
 Install the Mycodo:
