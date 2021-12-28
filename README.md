@@ -7,7 +7,7 @@ Clone the repo to `~/` and rename the foldor to Mycodo. The code is setup to fin
 Install dependancy:
 ```
 sudo apt-get update
-sudo apt-get install gawk curl nano unzip
+sudo apt-get install gawk curl nano unzip ngnix
 sudo apt-get install python3-pip
 pip3 install six wemo==1.0.4
 ```
