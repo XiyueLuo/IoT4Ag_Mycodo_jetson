@@ -2,7 +2,7 @@
 
 This is a repo for adapting Mycodo to run on Jetson Nano. Tested on Jetpack 4.5
 
-Clone the repo to /home.
+Clone the repo to /home and rename the foldor to Mycodo. The code is setup to find its components at `~/Mycodo`.
 
 Install dependancy:
 ```
